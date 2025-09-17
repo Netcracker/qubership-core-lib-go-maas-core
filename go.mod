@@ -2,7 +2,7 @@ module github.com/netcracker/qubership-core-lib-go-maas-core/v3
 
 go 1.23.0
 
-toolchain go1.24.2
+toolchain go1.25.1
 
 require (
 	github.com/go-resty/resty/v2 v2.16.5
@@ -16,7 +16,6 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
-	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.2 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
