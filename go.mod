@@ -3,7 +3,7 @@ module github.com/netcracker/qubership-core-lib-go-maas-core/v3
 go 1.25.7
 
 require (
-	github.com/go-resty/resty/v2 v2.17.1
+	github.com/go-resty/resty/v2 v2.17.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.3.0
