@@ -7,7 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.4.6
-	github.com/netcracker/qubership-core-lib-go/v3 v3.8.1
+	github.com/netcracker/qubership-core-lib-go/v3 v3.8.2-0.20260514133633-d05f0c13170b
 	github.com/stretchr/testify v1.11.1
 )
 

@@ -2,17 +2,18 @@ package core
 
 import (
 	"context"
-	"fmt"
+	"net/http"
 
-	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/kafka"
-	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/rabbit"
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
+	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/kafka"
+	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/rabbit"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
-	"github.com/netcracker/qubership-core-lib-go/v3/utils"
-	"github.com/netcracker/qubership-core-lib-go/v3/const"
-	"github.com/netcracker/qubership-core-lib-go/v3/serviceloader"
+	constants "github.com/netcracker/qubership-core-lib-go/v3/const"
 	"github.com/netcracker/qubership-core-lib-go/v3/security"
+	"github.com/netcracker/qubership-core-lib-go/v3/security/rest"
+	"github.com/netcracker/qubership-core-lib-go/v3/serviceloader"
+	"github.com/netcracker/qubership-core-lib-go/v3/utils"
 )
 
 type options struct {
@@ -88,16 +89,22 @@ func getNamespace() string {
 	return configloader.GetKoanf().MustString("microservice.namespace")
 }
 
+type m2mRoundTripper struct {
+	client rest.Client
+}
+
+func (m *m2mRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	return m.client.DoRequest(
+		req.Context(),
+		req.Method,
+		req.URL.String(),
+		req.Header,
+		req.Body,
+	)
+}
+
 func getHttpClient() *resty.Client {
-	return resty.New().OnBeforeRequest(func(client *resty.Client, request *resty.Request) error {
-	    tokenProvider := serviceloader.MustLoad[security.TokenProvider]()
-		token, err := tokenProvider.GetToken(request.Context())
-		if err != nil {
-			return fmt.Errorf("failed to get token: %w", err)
-		}
-		request.SetAuthToken(token)
-		return nil
-	}).SetTLSClientConfig(utils.GetTlsConfig()).SetRetryCount(10)
+	return resty.New().SetTransport(&m2mRoundTripper{rest.NewM2MRestClient()}).SetRetryCount(10)
 }
 
 func getStompDialer() *websocket.Dialer {
@@ -105,6 +112,6 @@ func getStompDialer() *websocket.Dialer {
 }
 
 func getAuthSupplier() func(ctx context.Context) (string, error) {
-    tokenProvider := serviceloader.MustLoad[security.TokenProvider]()
+	tokenProvider := serviceloader.MustLoad[security.TokenProvider]()
 	return tokenProvider.GetToken
 }
