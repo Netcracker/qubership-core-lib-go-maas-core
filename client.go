@@ -98,8 +98,8 @@ func getMaaSAgentUrl() string {
 }
 
 func getMaaSUrl(fallbackUrl func() string) func() string {
-	maasUrl := configloader.GetOrDefaultString("maas.internal.address", "")
 	return func() string {
+		maasUrl := configloader.GetOrDefaultString("maas.internal.address", "")
 		if maasUrl == "" {
 			logger.Warn("MaaS address is not available, falling back to maas-agent. Specify 'maas.internal.address' property to MaaS url")
 			return fallbackUrl()
