@@ -10,15 +10,19 @@ import (
 	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/rabbit"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
 	constants "github.com/netcracker/qubership-core-lib-go/v3/const"
+	"github.com/netcracker/qubership-core-lib-go/v3/logging"
 	"github.com/netcracker/qubership-core-lib-go/v3/security"
 	"github.com/netcracker/qubership-core-lib-go/v3/security/rest"
 	"github.com/netcracker/qubership-core-lib-go/v3/serviceloader"
 	"github.com/netcracker/qubership-core-lib-go/v3/utils"
 )
 
+var logger = logging.GetLogger("maas-client")
+
 type options struct {
 	namespace        func() string
 	maasAgentUrl     func() string
+	maasUrl          func() string
 	tenantManagerUrl func() string
 	httpClient       func() *resty.Client
 	stompDialer      func() *websocket.Dialer
@@ -29,19 +33,28 @@ type Option func(options *options)
 
 func NewKafkaClient(opts ...Option) kafka.MaasClient {
 	config := configure(opts...)
-	return kafka.NewClient(config.namespace(), config.maasAgentUrl(), config.tenantManagerUrl(), config.httpClient(),
+	maasUrl := config.maasAgentUrl()
+	if configloader.GetKoanf().Bool("security.m2m.kubernetes.enabled") {
+		maasUrl = config.maasUrl()
+	}
+	return kafka.NewClient(config.namespace(), maasUrl, config.tenantManagerUrl(), config.httpClient(),
 		config.stompDialer(), config.authSupplier())
 }
 
 func NewRabbitClient(opts ...Option) rabbit.MaasClient {
 	config := configure(opts...)
-	return rabbit.NewClient(config.namespace(), config.maasAgentUrl(), config.httpClient())
+	maasUrl := config.maasAgentUrl()
+	if configloader.GetKoanf().Bool("security.m2m.kubernetes.enabled") {
+		maasUrl = config.maasUrl()
+	}
+	return rabbit.NewClient(config.namespace(), maasUrl, config.httpClient())
 }
 
 func configure(opts ...Option) *options {
 	config := &options{
 		namespace:        getNamespace,
 		maasAgentUrl:     getMaaSAgentUrl,
+		maasUrl:          getMaaSUrl(getMaaSAgentUrl),
 		tenantManagerUrl: getTenantManagerUrl,
 		httpClient:       getHttpClient,
 		stompDialer:      getStompDialer,
@@ -61,6 +74,10 @@ func WithMaaSAgentUrl(url string) Option {
 	return func(options *options) { options.maasAgentUrl = func() string { return url } }
 }
 
+func WithMaaSUrl(url string) Option {
+	return func(options *options) { options.maasUrl = func() string { return url } }
+}
+
 func WithHttpClient(client *resty.Client) Option {
 	return func(options *options) { options.httpClient = func() *resty.Client { return client } }
 }
@@ -78,6 +95,17 @@ func WithAuthSupplier(authSupplier func(ctx context.Context) (string, error)) Op
 func getMaaSAgentUrl() string {
 	defaultUrl := constants.SelectUrl("http://maas-agent:8080", "https://maas-agent:8443")
 	return configloader.GetOrDefaultString("maas.agent.url", defaultUrl)
+}
+
+func getMaaSUrl(fallbackUrl func() string) func() string {
+	maasUrl := configloader.GetOrDefaultString("maas.internal.address", "")
+	return func() string {
+		if maasUrl == "" {
+			logger.Warn("MaaS address is not available, falling back to maas-agent. Specify 'maas.internal.address' property to MaaS url")
+			return fallbackUrl()
+		}
+		return maasUrl
+	}
 }
 
 func getTenantManagerUrl() string {
