@@ -8,6 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
 	"github.com/jarcoal/httpmock"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/classifier"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
 	"github.com/netcracker/qubership-core-lib-go/v3/security"
@@ -29,6 +30,24 @@ func TestGetMaaSAgentUrl(t *testing.T) {
 	assertions.Equal("http://maas-agent:8080", maasAgentUrl)
 }
 
+func TestGetMaaSUrl(t *testing.T) {
+	assertions := require.New(t)
+
+	testYamlParams := configloader.YamlPropertySourceParams{ConfigFilePath: "./testdata/application.yaml"}
+	configloader.InitWithSourcesArray(configloader.BasePropertySources(testYamlParams))
+
+	maasUrl := getMaaSUrl(getMaaSAgentUrl)
+	assertions.Equal("http://maas-agent:8080", maasUrl())
+
+	testConf := confmap.Provider(map[string]interface{}{
+		"maas.internal.address": "http://maas-service:8080",
+	}, ".")
+	configloader.Init(configloader.YamlPropertySource(testYamlParams), &configloader.PropertySource{
+		Provider: configloader.AsPropertyProvider(testConf),
+	})
+	assertions.Equal("http://maas-service:8080", maasUrl())
+
+}
 func TestGetTenantManagerUrl(t *testing.T) {
 	testYamlParams := configloader.YamlPropertySourceParams{ConfigFilePath: "./testdata/application.yaml"}
 	configloader.InitWithSourcesArray(configloader.BasePropertySources(testYamlParams))
