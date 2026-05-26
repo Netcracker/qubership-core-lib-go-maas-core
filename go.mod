@@ -36,4 +36,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/netcracker/qubership-core-lib-go/v3 => github.com/netcracker/qubership-core-lib-go/v3 v3.8.2-0.20260514133633-d05f0c13170b
+replace github.com/netcracker/qubership-core-lib-go/v3 => github.com/netcracker/qubership-core-lib-go/v3 v3.9.1
