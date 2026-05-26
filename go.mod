@@ -8,7 +8,7 @@ require (
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.4.8
-	github.com/netcracker/qubership-core-lib-go/v3 v3.9.1
+	github.com/netcracker/qubership-core-lib-go/v3 v3.9.2-0.20260526065219-914c71c88e88
 	github.com/stretchr/testify v1.11.1
 )
 
