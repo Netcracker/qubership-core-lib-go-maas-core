@@ -118,7 +118,7 @@ func getNamespace() string {
 }
 
 type m2mRoundTripper struct {
-	client rest.Client
+	client *rest.M2MRestClient
 }
 
 func (m *m2mRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {

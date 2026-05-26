@@ -1,8 +1,8 @@
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
-github.com/fsnotify/fsnotify v1.9.0/go.mod h1:8jBTzvmWwFyi3Pb8djgCCO5IBqzKJ/Jwo8TRcHyHii0=
+github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=
+github.com/fsnotify/fsnotify v1.10.1/go.mod h1:TLheqan6HD6GBK6PrDWyDPBaEV8LspOxvPSjC+bVfgo=
 github.com/go-pkgz/expirable-cache/v3 v3.1.0 h1:s05P851/O6QJ6Mc+7o2bh9aGtD3romB1SxDTXifdoqc=
 github.com/go-pkgz/expirable-cache/v3 v3.1.0/go.mod h1:6pVgNleydKPj0J2/mzrI02/RDo4ivKx5v2XlNmIjhjo=
 github.com/go-resty/resty/v2 v2.17.2 h1:FQW5oHYcIlkCNrMD2lloGScxcHJ0gkjshV3qcQAyHQk=
@@ -49,8 +49,8 @@ github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.4.8 h1:ALUO7mDPuDx
 github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.4.8/go.mod h1:qobexHCTWWNZ7XLs8G0eao2/cVZE0VPlDMm+zM2fP/U=
 github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.4.8 h1:rK4iVnABRdezpGit9UgO63+uarbyRKWWSX31yoxY1Lo=
 github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.4.8/go.mod h1:xIzbwqi2O6k+BrlAVg0PiBoY33e53VH2G108w4KDplU=
-github.com/netcracker/qubership-core-lib-go/v3 v3.8.2-0.20260514133633-d05f0c13170b h1:YTQuKWzE8DF+hgVjOsa9KNB5yKZa1MYlB9qDETeIUOU=
-github.com/netcracker/qubership-core-lib-go/v3 v3.8.2-0.20260514133633-d05f0c13170b/go.mod h1:QyMRsp91YS6ub+0NWXWU5NzC0DK+YASMceUR4Qhdxts=
+github.com/netcracker/qubership-core-lib-go/v3 v3.9.2-0.20260526065219-914c71c88e88 h1:z7nq3pBCRiNtYFqVXJlMHhFLpC37ccv019rD4/YAPVk=
+github.com/netcracker/qubership-core-lib-go/v3 v3.9.2-0.20260526065219-914c71c88e88/go.mod h1:HibQZBj/Qpk4eDt5CKqWEbv5pat2Ox3GF5HiW4tRLFM=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rabbitmq/amqp091-go v1.10.0 h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=
