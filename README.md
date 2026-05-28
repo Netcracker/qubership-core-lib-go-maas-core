@@ -116,3 +116,4 @@ func kafkaClientWithDefaults(ctx context.Context) error {
 	return nil
 }
 ~~~
+
