@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
@@ -134,4 +135,29 @@ func TestNewKafkaClient_WithAthSupplier(t *testing.T) {
 	assert.NoError(t, err)
 	assertions := require.New(t)
 	assertions.True(isAuthSupplierCalled)
+}
+
+func TestIsK8sM2mEnabled(t *testing.T) {
+	err := os.Setenv("KUBERNETES_M2M_ENABLED", "true")
+	require.NoError(t, err)
+	assert.True(t, isK8sM2mEnabled())
+
+	err = os.Setenv("KUBERNETES_M2M_ENABLED", "false")
+	require.NoError(t, err)
+	assert.False(t, isK8sM2mEnabled())
+
+	err = os.Setenv("KUBERNETES_M2M_ENABLED", "")
+	require.NoError(t, err)
+	assert.False(t, isK8sM2mEnabled())
+
+	err = os.Setenv("KUBERNETES_M2M_ENABLED", "1")
+	require.NoError(t, err)
+	assert.True(t, isK8sM2mEnabled())
+
+	err = os.Setenv("KUBERNETES_M2M_ENABLED", "0")
+	require.NoError(t, err)
+	assert.False(t, isK8sM2mEnabled())
+
+	err = os.Unsetenv("KUBERNETES_M2M_ENABLED")
+	require.NoError(t, err)
 }
