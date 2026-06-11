@@ -3,6 +3,8 @@ package core
 import (
 	"context"
 	"net/http"
+	"os"
+	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
@@ -34,7 +36,7 @@ type Option func(options *options)
 func NewKafkaClient(opts ...Option) kafka.MaasClient {
 	config := configure(opts...)
 	maasUrl := config.maasAgentUrl()
-	if configloader.GetKoanf().Bool("security.m2m.kubernetes.enabled") {
+	if isK8sM2mEnabled() {
 		maasUrl = config.maasUrl()
 	}
 	return kafka.NewClient(config.namespace(), maasUrl, config.tenantManagerUrl(), config.httpClient(),
@@ -44,7 +46,7 @@ func NewKafkaClient(opts ...Option) kafka.MaasClient {
 func NewRabbitClient(opts ...Option) rabbit.MaasClient {
 	config := configure(opts...)
 	maasUrl := config.maasAgentUrl()
-	if configloader.GetKoanf().Bool("security.m2m.kubernetes.enabled") {
+	if isK8sM2mEnabled() {
 		maasUrl = config.maasUrl()
 	}
 	return rabbit.NewClient(config.namespace(), maasUrl, config.httpClient())
@@ -142,4 +144,16 @@ func getStompDialer() *websocket.Dialer {
 func getAuthSupplier() func(ctx context.Context) (string, error) {
 	tokenProvider := serviceloader.MustLoad[security.TokenProvider]()
 	return tokenProvider.GetToken
+}
+
+func isK8sM2mEnabled() bool {
+	k8sM2mEnabled := false
+	if rawM2mEnabled, ok := os.LookupEnv("KUBERNETES_M2M_ENABLED"); ok {
+		var err error
+		k8sM2mEnabled, err = strconv.ParseBool(rawM2mEnabled)
+		if err != nil {
+			logger.Error("Failed to parse env var KUBERNETES_M2M_ENABLED: %v", err)
+		}
+	}
+	return k8sM2mEnabled
 }
