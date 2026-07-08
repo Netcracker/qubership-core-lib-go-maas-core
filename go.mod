@@ -1,6 +1,6 @@
 module github.com/netcracker/qubership-core-lib-go-maas-core/v3
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/go-resty/resty/v2 v2.17.2
@@ -21,7 +21,6 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
 	github.com/knadh/koanf/parsers/yaml v1.1.0 // indirect
-	github.com/knadh/koanf/providers/env v1.1.0 // indirect
 	github.com/knadh/koanf/providers/env/v2 v2.0.0 // indirect
 	github.com/knadh/koanf/providers/file v1.2.1 // indirect
 	github.com/knadh/koanf/v2 v2.3.5 // indirect
