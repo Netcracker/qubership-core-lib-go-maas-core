@@ -7,8 +7,8 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/knadh/koanf/providers/confmap v1.0.0
-	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.5
-	github.com/netcracker/qubership-core-lib-go/v3 v3.13.1
+	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.6
+	github.com/netcracker/qubership-core-lib-go/v3 v3.13.2
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -26,13 +26,13 @@ require (
 	github.com/knadh/koanf/v2 v2.3.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.5.5 // indirect
+	github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.5.6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.12.0 // indirect
 	github.com/viney-shih/go-lock v1.1.2 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
