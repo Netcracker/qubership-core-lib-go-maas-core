@@ -1,14 +1,14 @@
 module github.com/netcracker/qubership-core-lib-go-maas-core/v3
 
-go 1.26.5
+go 1.26.4
 
 require (
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/gorilla/websocket v1.5.3
 	github.com/jarcoal/httpmock v1.4.1
 	github.com/knadh/koanf/providers/confmap v1.0.0
-	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.7
-	github.com/netcracker/qubership-core-lib-go/v3 v3.13.3
+	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.5
+	github.com/netcracker/qubership-core-lib-go/v3 v3.13.1
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -26,7 +26,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.5 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
-	github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.5.7 // indirect
+	github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.5.5 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.12.0 // indirect
 	github.com/viney-shih/go-lock v1.1.2 // indirect
