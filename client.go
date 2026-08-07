@@ -134,7 +134,7 @@ func (m *m2mRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func getHttpClient() *resty.Client {
-	return resty.New().SetTransport(&m2mRoundTripper{rest.NewM2MRestClient()}).SetRetryCount(10)
+	return resty.New().SetTransport(&m2mRoundTripper{rest.NewMaasRestClient()}).SetRetryCount(10)
 }
 
 func getStompDialer() *websocket.Dialer {
