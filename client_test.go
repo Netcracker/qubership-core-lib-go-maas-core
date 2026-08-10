@@ -22,6 +22,18 @@ func init() {
 	serviceloader.Register(2, &security.DummyToken{})
 }
 
+// Test_GetHttpClient_HasNoOwnRetries pins that the shared client neither retries
+// nor times out on its own - both would fight the maas client's retry loop.
+func Test_GetHttpClient_HasNoOwnRetries(t *testing.T) {
+	assertions := require.New(t)
+	client := getHttpClient()
+
+	assertions.Equal(0, client.RetryCount,
+		"resty must not retry on its own, it multiplies the retry budget of the maas client")
+	assertions.Zero(client.GetClient().Timeout,
+		"a client-wide timeout would cut the 60s topic watch long poll short; bounding a call is the caller's job via context")
+}
+
 func TestGetMaaSAgentUrl(t *testing.T) {
 	testYamlParams := configloader.YamlPropertySourceParams{ConfigFilePath: "./testdata/application.yaml"}
 	configloader.InitWithSourcesArray(configloader.BasePropertySources(testYamlParams))
