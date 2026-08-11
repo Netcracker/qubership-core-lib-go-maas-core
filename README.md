@@ -86,6 +86,17 @@ func kafkaClientWithCustomParams() {
 }
 ~~~
 
+### Supplying your own HTTP client
+
+`WithHttpClient` replaces the default resty client, which is built with two
+settings worth keeping:
+
+* **No resty retries.** Retrying is handled by
+  `qubership-core-lib-go-maas-client`; enabling both multiplies the number of
+  requests per call.
+* **No client-wide timeout.** The client also serves the topic watch, which
+  long-polls for 60s. Bound individual calls with the context you pass instead.
+
 ### Watching tenant topics:
 See example [tenant-topics-watch.go](examples/tenant-topics-watch.go)
 
