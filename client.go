@@ -140,7 +140,7 @@ func (m *m2mRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 // 60s topic watch long poll, so callers bound their calls via context.
 func getHttpClient() *resty.Client {
 	return resty.New().
-		SetTransport(&m2mRoundTripper{rest.NewM2MRestClient()}).
+		SetTransport(&m2mRoundTripper{rest.NewMaasRestClient()}).
 		SetRetryCount(0)
 }
 
