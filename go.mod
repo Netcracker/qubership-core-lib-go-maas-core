@@ -9,11 +9,10 @@ require (
 	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.9
 	github.com/netcracker/qubership-core-lib-go/v3 v3.13.5
-	github.com/stretchr/testify v1.11.1
+	github.com/stretchr/testify v1.12.1
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-pkgz/expirable-cache/v3 v3.1.0 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
@@ -27,12 +26,10 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/netcracker/qubership-core-lib-go-stomp-websocket/v3 v3.5.9 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rabbitmq/amqp091-go v1.12.0 // indirect
 	github.com/viney-shih/go-lock v1.1.2 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/net v0.56.0 // indirect
 	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
