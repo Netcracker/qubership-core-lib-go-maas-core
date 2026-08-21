@@ -5,8 +5,8 @@ go 1.26.5
 require (
 	github.com/go-resty/resty/v2 v2.17.2
 	github.com/gorilla/websocket v1.5.3
-	github.com/jarcoal/httpmock v1.4.1
-	github.com/knadh/koanf/providers/confmap v1.0.0
+	github.com/jarcoal/httpmock v1.4.2
+	github.com/knadh/koanf/providers/confmap v1.0.1
 	github.com/netcracker/qubership-core-lib-go-maas-client/v3 v3.5.9
 	github.com/netcracker/qubership-core-lib-go/v3 v3.13.5
 	github.com/stretchr/testify v1.11.1
