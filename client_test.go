@@ -3,12 +3,13 @@ package core
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
-	"github.com/jarcoal/httpmock"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/classifier"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
@@ -17,6 +18,26 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type mockTokenProvider struct {
+	token string
+}
+
+func (m *mockTokenProvider) GetToken(_ context.Context) (string, error) {
+	return m.token, nil
+}
+
+func (m *mockTokenProvider) ValidateToken(_ context.Context, _ string) (*jwt.Token, error) {
+	return nil, nil
+}
+
+func (m *mockTokenProvider) GetClaimValue(_ *jwt.Token, _ string) (interface{}, error) {
+	return nil, nil
+}
+
+func (m *mockTokenProvider) GetTokenAttribute(_ context.Context, _ string) (string, error) {
+	return "", nil
+}
 
 func init() {
 	serviceloader.Register(2, &security.DummyToken{})
@@ -115,26 +136,29 @@ func TestConfigure(t *testing.T) {
 	assertions.Equal(testDialer, config.stompDialer())
 }
 
-func TestNewKafkaClient_WithAthSupplier(t *testing.T) {
-	client := resty.New()
-	httpmock.ActivateNonDefault(client.GetClient())
-	defer httpmock.DeactivateAndReset()
-	httpmock.RegisterResponder("POST", "/api/v1/kafka/topic/get-by-classifier",
-		httpmock.NewStringResponder(http.StatusNotFound, ""))
+func TestNewKafkaClient_AuthIsInjectedByRestClient(t *testing.T) {
+	const testToken = "test-m2m-token"
+	serviceloader.Register(3, &mockTokenProvider{token: testToken})
 
-	isAuthSupplierCalled := false
-	kafkaClient := NewKafkaClient(WithAuthSupplier(func(ctx context.Context) (string, error) {
-		isAuthSupplierCalled = true
-		return "test-token", nil
-	}),
-		WithHttpClient(client),
-		WithNamespace("test-namespace"),
-	)
+	var receivedAuthHeader string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	configloader.Init(&configloader.PropertySource{
+		Provider: configloader.AsPropertyProvider(confmap.Provider(map[string]interface{}{
+			"maas.agent.url":         server.URL,
+			"microservice.namespace": "test-namespace",
+		}, ".")),
+	})
+
+	kafkaClient := NewKafkaClient(WithNamespace("test-namespace"))
 	topic, err := kafkaClient.GetTopic(context.Background(), classifier.Keys{classifier.Namespace: "test-namespace"})
 	assert.Nil(t, topic)
 	assert.NoError(t, err)
-	assertions := require.New(t)
-	assertions.True(isAuthSupplierCalled)
+	assert.Equal(t, "Bearer "+testToken, receivedAuthHeader)
 }
 
 func TestIsK8sM2mEnabled(t *testing.T) {
