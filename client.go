@@ -135,9 +135,9 @@ func (m *m2mRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // getHttpClient builds the resty client used by the maas clients.
 //
-// No retries: they belong to util.Retry in the maas client, and enabling both
-// multiplies the budgets. No client-wide timeout: this client also serves the
-// 60s topic watch long poll, so callers bound their calls via context.
+// No retries: they belong to the maas client, and enabling both multiplies the
+// attempts. No client-wide timeout: this client also serves the 60s topic watch
+// long poll, so callers bound their calls via context.
 func getHttpClient() *resty.Client {
 	return resty.New().
 		SetTransport(&m2mRoundTripper{rest.NewMaasRestClient()}).

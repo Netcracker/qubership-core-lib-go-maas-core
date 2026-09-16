@@ -50,7 +50,7 @@ func Test_GetHttpClient_HasNoOwnRetries(t *testing.T) {
 	client := getHttpClient()
 
 	assertions.Equal(0, client.RetryCount,
-		"resty must not retry on its own, it multiplies the retry budget of the maas client")
+		"resty must not retry on its own, it multiplies the attempts of the maas client")
 	assertions.Zero(client.GetClient().Timeout,
 		"a client-wide timeout would cut the 60s topic watch long poll short; bounding a call is the caller's job via context")
 }
