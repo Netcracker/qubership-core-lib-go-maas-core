@@ -13,6 +13,8 @@ require (
 )
 
 require (
+	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/failsafe-go/failsafe-go v0.9.7 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-pkgz/expirable-cache/v3 v3.1.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.5.0 // indirect
