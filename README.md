@@ -11,6 +11,7 @@ This lib provides methods to build maas clients with defaults required parameter
 
 <!-- TOC -->
 * [core](#core)
+  * [MaaS address and M2M_AUTH_MODE](#maas-address-and-m2m_auth_mode)
   * [Kafka](#kafka)
     * [Default usage:](#default-usage)
     * [You can override any of default parameters like shown in the code snippet below:](#you-can-override-any-of-default-parameters-like-shown-in-the-code-snippet-below)
@@ -20,7 +21,7 @@ This lib provides methods to build maas clients with defaults required parameter
 <!-- TOC -->
 
 
-To use any client it's necessary to register security implemention - dummy or your own, the followning example shows registration of required services:
+Unless `M2M_AUTH_MODE` is `k8s`, any client needs a registered security implemention - dummy or your own, the followning example shows registration of required services:
 
 ```go
 import (
@@ -32,6 +33,22 @@ func init() {
   serviceloader.Register(2, &security.DummyToken{})
 }
 ```
+
+## MaaS address and M2M_AUTH_MODE
+
+`NewKafkaClient` and `NewRabbitClient` pick the MaaS address by `M2M_AUTH_MODE`, described in the
+[lib-go rest client README](https://github.com/Netcracker/qubership-core-lib-go/blob/main/security/rest/README.md).
+The Kafka client picks the token for the tenant watch the same way.
+
+| Mode               | MaaS address                                                   | Tenant watch token                            |
+|--------------------|----------------------------------------------------------------|-----------------------------------------------|
+| `legacy` (default) | maas-agent, `maas.agent.url`                                   | Legacy M2M token                              |
+| `hybrid`           | `maas.internal.address`, or maas-agent when it is not set      | Legacy M2M token                              |
+| `k8s`              | `maas.internal.address`, required                              | Kubernetes token with the netcracker audience |
+
+In `k8s` mode without `maas.internal.address`, both constructors panic with
+`maas.internal.address is not set: with M2M_AUTH_MODE=k8s the client sends requests directly to MaaS, set maas.internal.address to the MaaS URL`.
+`WithMaaSUrl` replaces `maas.internal.address`, and `WithAuthSupplier` replaces the tenant watch token.
 
 ## Kafka
 
