@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/websocket"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/classifier"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
@@ -196,4 +197,67 @@ func TestIsK8sM2mEnabled(t *testing.T) {
 
 	err = os.Unsetenv("KUBERNETES_M2M_ENABLED")
 	require.NoError(t, err)
+}
+
+var maasAddressCases = []struct {
+	name              string
+	env               map[string]string
+	withDirectAddress bool
+	want              string
+}{
+	{name: "unset flag uses the agent", withDirectAddress: true, want: "agent"},
+	{name: "false uses the agent", env: map[string]string{"KUBERNETES_M2M_ENABLED": "false"}, withDirectAddress: true, want: "agent"},
+	{name: "true uses the direct address", env: map[string]string{"KUBERNETES_M2M_ENABLED": "true"}, withDirectAddress: true, want: "direct"},
+	{name: "true without the direct address uses the agent", env: map[string]string{"KUBERNETES_M2M_ENABLED": "true"}, want: "agent"},
+}
+
+func TestNewKafkaClient_SelectsMaaSAddress(t *testing.T) {
+	for _, tt := range maasAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requested := requestedMaaSServers(t, tt.env, tt.withDirectAddress, func() {
+				_, _ = NewKafkaClient(WithHttpClient(resty.New())).GetTopic(context.Background(), classifier.Keys{classifier.Namespace: "test-namespace"})
+			})
+			assert.Equal(t, tt.want, requested)
+		})
+	}
+}
+
+func TestNewRabbitClient_SelectsMaaSAddress(t *testing.T) {
+	for _, tt := range maasAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requested := requestedMaaSServers(t, tt.env, tt.withDirectAddress, func() {
+				_, _ = NewRabbitClient(WithHttpClient(resty.New())).GetVhost(context.Background(), classifier.Keys{classifier.Namespace: "test-namespace"})
+			})
+			assert.Equal(t, tt.want, requested)
+		})
+	}
+}
+
+// requestedMaaSServers starts a maas-agent server and, with withDirectAddress, a MaaS server, sets env, runs call, and
+// returns the names of the servers that received a request, joined by commas.
+func requestedMaaSServers(t *testing.T, env map[string]string, withDirectAddress bool, call func()) string {
+	var requested []string
+	newServer := func(name string) *httptest.Server {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requested = append(requested, name)
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		t.Cleanup(server.Close)
+		return server
+	}
+	config := map[string]interface{}{
+		"maas.agent.url":         newServer("agent").URL,
+		"microservice.namespace": "test-namespace",
+	}
+	if withDirectAddress {
+		config["maas.internal.address"] = newServer("direct").URL
+	}
+	for name, value := range env {
+		t.Setenv(name, value)
+	}
+	configloader.Init(&configloader.PropertySource{
+		Provider: configloader.AsPropertyProvider(confmap.Provider(config, ".")),
+	})
+	call()
+	return strings.Join(requested, ",")
 }
