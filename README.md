@@ -46,7 +46,7 @@ The Kafka client picks the token for the tenant watch the same way.
 | `hybrid`           | `maas.internal.address`, or maas-agent when it is not set      | Legacy M2M token                              |
 | `k8s`              | `maas.internal.address`, required                              | Kubernetes token with the netcracker audience |
 
-In `k8s` mode without `maas.internal.address`, both constructors panic with
+An empty `maas.internal.address` counts as not set. In `k8s` mode without it, both constructors panic with
 `maas.internal.address is not set: with M2M_AUTH_MODE=k8s the client sends requests directly to MaaS, set maas.internal.address to the MaaS URL`.
 `WithMaaSUrl` replaces `maas.internal.address`, and `WithAuthSupplier` replaces the tenant watch token.
 
