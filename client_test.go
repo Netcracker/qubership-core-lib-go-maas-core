@@ -4,16 +4,17 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"strings"
 	"testing"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/gorilla/websocket"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/gorilla/websocket"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/netcracker/qubership-core-lib-go-maas-client/v3/classifier"
 	"github.com/netcracker/qubership-core-lib-go/v3/configloader"
 	"github.com/netcracker/qubership-core-lib-go/v3/security"
+	"github.com/netcracker/qubership-core-lib-go/v3/security/tokensource"
 	"github.com/netcracker/qubership-core-lib-go/v3/serviceloader"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,8 +40,19 @@ func (m *mockTokenProvider) GetTokenAttribute(_ context.Context, _ string) (stri
 	return "", nil
 }
 
+type stubTokenSource struct{}
+
+func (s *stubTokenSource) GetAudienceToken(_ context.Context, audience tokensource.TokenAudience) (string, error) {
+	return "k8s-token-" + string(audience), nil
+}
+
+func (s *stubTokenSource) GetServiceAccountToken(_ context.Context) (string, error) {
+	return "", nil
+}
+
 func init() {
 	serviceloader.Register(2, &security.DummyToken{})
+	serviceloader.Register(100, &stubTokenSource{})
 }
 
 // Test_GetHttpClient_HasNoOwnRetries pins that the shared client neither retries
@@ -70,8 +82,7 @@ func TestGetMaaSUrl(t *testing.T) {
 	testYamlParams := configloader.YamlPropertySourceParams{ConfigFilePath: "./testdata/application.yaml"}
 	configloader.InitWithSourcesArray(configloader.BasePropertySources(testYamlParams))
 
-	maasUrl := getMaaSUrl(getMaaSAgentUrl)
-	assertions.Equal("http://maas-agent:8080", maasUrl())
+	assertions.Equal("", getMaaSUrl())
 
 	testConf := confmap.Provider(map[string]interface{}{
 		"maas.internal.address": "http://maas-service:8080",
@@ -79,7 +90,7 @@ func TestGetMaaSUrl(t *testing.T) {
 	configloader.Init(configloader.YamlPropertySource(testYamlParams), &configloader.PropertySource{
 		Provider: configloader.AsPropertyProvider(testConf),
 	})
-	assertions.Equal("http://maas-service:8080", maasUrl())
+	assertions.Equal("http://maas-service:8080", getMaaSUrl())
 
 }
 func TestGetTenantManagerUrl(t *testing.T) {
@@ -173,27 +184,136 @@ func TestNewKafkaClient_AuthIsInjectedByRestClient(t *testing.T) {
 	assert.Equal(t, "Bearer "+testToken, receivedAuthHeader)
 }
 
-func TestIsK8sM2mEnabled(t *testing.T) {
-	err := os.Setenv("KUBERNETES_M2M_ENABLED", "true")
-	require.NoError(t, err)
-	assert.True(t, isK8sM2mEnabled())
+type directAddress int
 
-	err = os.Setenv("KUBERNETES_M2M_ENABLED", "false")
-	require.NoError(t, err)
-	assert.False(t, isK8sM2mEnabled())
+const (
+	noDirectAddress directAddress = iota
+	emptyDirectAddress
+	directServer
+)
 
-	err = os.Setenv("KUBERNETES_M2M_ENABLED", "")
-	require.NoError(t, err)
-	assert.False(t, isK8sM2mEnabled())
+var maasAddressCases = []struct {
+	name          string
+	env           map[string]string
+	directAddress directAddress
+	want          string
+}{
+	{name: "unset mode uses the agent", directAddress: directServer, want: "agent"},
+	{name: "legacy uses the agent", env: map[string]string{"M2M_AUTH_MODE": "legacy"}, directAddress: directServer, want: "agent"},
+	{name: "hybrid uses the direct address", env: map[string]string{"M2M_AUTH_MODE": "hybrid"}, directAddress: directServer, want: "direct"},
+	{name: "hybrid without the direct address uses the agent", env: map[string]string{"M2M_AUTH_MODE": "hybrid"}, want: "agent"},
+	{name: "hybrid with an empty direct address uses the agent", env: map[string]string{"M2M_AUTH_MODE": "hybrid"}, directAddress: emptyDirectAddress, want: "agent"},
+	{name: "k8s uses the direct address", env: map[string]string{"M2M_AUTH_MODE": "k8s"}, directAddress: directServer, want: "direct"},
+	{name: "KUBERNETES_M2M_ENABLED is not read", env: map[string]string{"KUBERNETES_M2M_ENABLED": "true"}, directAddress: directServer, want: "agent"},
+}
 
-	err = os.Setenv("KUBERNETES_M2M_ENABLED", "1")
-	require.NoError(t, err)
-	assert.True(t, isK8sM2mEnabled())
+func TestNewKafkaClient_SelectsMaaSAddress(t *testing.T) {
+	for _, tt := range maasAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requested := requestedMaaSServers(t, tt.env, tt.directAddress, func() {
+				_, _ = NewKafkaClient(WithHttpClient(resty.New())).GetTopic(context.Background(), classifier.Keys{classifier.Namespace: "test-namespace"})
+			})
+			assert.Equal(t, tt.want, requested)
+		})
+	}
+}
 
-	err = os.Setenv("KUBERNETES_M2M_ENABLED", "0")
-	require.NoError(t, err)
-	assert.False(t, isK8sM2mEnabled())
+func TestNewRabbitClient_SelectsMaaSAddress(t *testing.T) {
+	for _, tt := range maasAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requested := requestedMaaSServers(t, tt.env, tt.directAddress, func() {
+				_, _ = NewRabbitClient(WithHttpClient(resty.New())).GetVhost(context.Background(), classifier.Keys{classifier.Namespace: "test-namespace"})
+			})
+			assert.Equal(t, tt.want, requested)
+		})
+	}
+}
 
-	err = os.Unsetenv("KUBERNETES_M2M_ENABLED")
+var k8sMissingAddressCases = []struct {
+	name          string
+	directAddress directAddress
+}{
+	{name: "unset", directAddress: noDirectAddress},
+	{name: "empty", directAddress: emptyDirectAddress},
+}
+
+func TestNewKafkaClient_K8sModeWithoutDirectAddressPanics(t *testing.T) {
+	for _, tt := range k8sMissingAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requestedMaaSServers(t, map[string]string{"M2M_AUTH_MODE": "k8s"}, tt.directAddress, func() {
+				assert.Contains(t, recoverPanic(func() { NewKafkaClient() }), "maas.internal.address is not set")
+			})
+		})
+	}
+}
+
+func TestNewRabbitClient_K8sModeWithoutDirectAddressPanics(t *testing.T) {
+	for _, tt := range k8sMissingAddressCases {
+		t.Run(tt.name, func(t *testing.T) {
+			requestedMaaSServers(t, map[string]string{"M2M_AUTH_MODE": "k8s"}, tt.directAddress, func() {
+				assert.Contains(t, recoverPanic(func() { NewRabbitClient() }), "maas.internal.address is not set")
+			})
+		})
+	}
+}
+
+func TestGetAuthSupplier_SelectsTokenByMode(t *testing.T) {
+	legacyToken, err := serviceloader.MustLoad[security.TokenProvider]().GetToken(context.Background())
 	require.NoError(t, err)
+	tests := []struct {
+		mode string
+		want string
+	}{
+		{mode: "legacy", want: legacyToken},
+		{mode: "hybrid", want: legacyToken},
+		{mode: "k8s", want: "k8s-token-netcracker"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.mode, func(t *testing.T) {
+			t.Setenv("M2M_AUTH_MODE", tt.mode)
+
+			token, err := getAuthSupplier()(context.Background())
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, token)
+		})
+	}
+}
+
+func recoverPanic(call func()) (recovered any) {
+	defer func() { recovered = recover() }()
+	call()
+	return nil
+}
+
+// requestedMaaSServers starts a maas-agent server, sets maas.internal.address as address selects, starting a MaaS
+// server for directServer, sets env, runs call, and returns the names of the servers that received a request, joined by
+// commas.
+func requestedMaaSServers(t *testing.T, env map[string]string, address directAddress, call func()) string {
+	var requested []string
+	newServer := func(name string) *httptest.Server {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			requested = append(requested, name)
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		t.Cleanup(server.Close)
+		return server
+	}
+	config := map[string]interface{}{
+		"maas.agent.url":         newServer("agent").URL,
+		"microservice.namespace": "test-namespace",
+	}
+	switch address {
+	case emptyDirectAddress:
+		config["maas.internal.address"] = ""
+	case directServer:
+		config["maas.internal.address"] = newServer("direct").URL
+	}
+	for name, value := range env {
+		t.Setenv(name, value)
+	}
+	configloader.Init(&configloader.PropertySource{
+		Provider: configloader.AsPropertyProvider(confmap.Provider(config, ".")),
+	})
+	call()
+	return strings.Join(requested, ",")
 }
