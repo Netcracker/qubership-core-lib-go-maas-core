@@ -3,8 +3,6 @@ package core
 import (
 	"context"
 	"net/http"
-	"os"
-	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	"github.com/gorilla/websocket"
@@ -15,11 +13,14 @@ import (
 	"github.com/netcracker/qubership-core-lib-go/v3/logging"
 	"github.com/netcracker/qubership-core-lib-go/v3/security"
 	"github.com/netcracker/qubership-core-lib-go/v3/security/rest"
+	"github.com/netcracker/qubership-core-lib-go/v3/security/tokensource"
 	"github.com/netcracker/qubership-core-lib-go/v3/serviceloader"
 	"github.com/netcracker/qubership-core-lib-go/v3/utils"
 )
 
 var logger = logging.GetLogger("maas-client")
+
+const maasAddressProperty = "maas.internal.address"
 
 type options struct {
 	namespace        func() string
@@ -35,20 +36,14 @@ type Option func(options *options)
 
 func NewKafkaClient(opts ...Option) kafka.MaasClient {
 	config := configure(opts...)
-	maasUrl := config.maasAgentUrl()
-	if isK8sM2mEnabled() {
-		maasUrl = config.maasUrl()
-	}
+	maasUrl := selectMaaSUrl(security.MustReadM2MAuthMode(), config)
 	return kafka.NewClient(config.namespace(), maasUrl, config.tenantManagerUrl(), config.httpClient(),
 		config.stompDialer(), config.authSupplier())
 }
 
 func NewRabbitClient(opts ...Option) rabbit.MaasClient {
 	config := configure(opts...)
-	maasUrl := config.maasAgentUrl()
-	if isK8sM2mEnabled() {
-		maasUrl = config.maasUrl()
-	}
+	maasUrl := selectMaaSUrl(security.MustReadM2MAuthMode(), config)
 	return rabbit.NewClient(config.namespace(), maasUrl, config.httpClient())
 }
 
@@ -56,7 +51,7 @@ func configure(opts ...Option) *options {
 	config := &options{
 		namespace:        getNamespace,
 		maasAgentUrl:     getMaaSAgentUrl,
-		maasUrl:          getMaaSUrl(getMaaSAgentUrl),
+		maasUrl:          getMaaSUrl,
 		tenantManagerUrl: getTenantManagerUrl,
 		httpClient:       getHttpClient,
 		stompDialer:      getStompDialer,
@@ -99,14 +94,26 @@ func getMaaSAgentUrl() string {
 	return configloader.GetOrDefaultString("maas.agent.url", defaultUrl)
 }
 
-func getMaaSUrl(fallbackUrl func() string) func() string {
-	return func() string {
-		maasUrl := configloader.GetOrDefaultString("maas.internal.address", "")
+func getMaaSUrl() string {
+	return configloader.GetOrDefaultString(maasAddressProperty, "")
+}
+
+func selectMaaSUrl(mode security.M2MAuthMode, config *options) string {
+	switch mode {
+	case security.M2MAuthModeK8s:
+		maasUrl := config.maasUrl()
 		if maasUrl == "" {
-			logger.Warn("MaaS address is not available, falling back to maas-agent. Specify 'maas.internal.address' property to MaaS url")
-			return fallbackUrl()
+			logger.Panic("%[1]s is not set: with M2M_AUTH_MODE=k8s the client sends requests directly to MaaS, set %[1]s to the MaaS URL", maasAddressProperty)
 		}
 		return maasUrl
+	case security.M2MAuthModeHybrid:
+		if maasUrl := config.maasUrl(); maasUrl != "" {
+			return maasUrl
+		}
+		logger.Warn("MaaS address is not available, falling back to maas-agent. Specify '%s' property to MaaS url", maasAddressProperty)
+		return config.maasAgentUrl()
+	default:
+		return config.maasAgentUrl()
 	}
 }
 
@@ -149,18 +156,12 @@ func getStompDialer() *websocket.Dialer {
 }
 
 func getAuthSupplier() func(ctx context.Context) (string, error) {
-	tokenProvider := serviceloader.MustLoad[security.TokenProvider]()
-	return tokenProvider.GetToken
-}
-
-func isK8sM2mEnabled() bool {
-	k8sM2mEnabled := false
-	if rawM2mEnabled, ok := os.LookupEnv("KUBERNETES_M2M_ENABLED"); ok {
-		var err error
-		k8sM2mEnabled, err = strconv.ParseBool(rawM2mEnabled)
-		if err != nil {
-			logger.Error("Failed to parse env var KUBERNETES_M2M_ENABLED: %v", err)
+	switch security.MustReadM2MAuthMode() {
+	case security.M2MAuthModeK8s:
+		return func(ctx context.Context) (string, error) {
+			return tokensource.GetAudienceToken(ctx, tokensource.AudienceNetcracker)
 		}
+	default:
+		return serviceloader.MustLoad[security.TokenProvider]().GetToken
 	}
-	return k8sM2mEnabled
 }
